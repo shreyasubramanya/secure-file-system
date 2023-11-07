@@ -1,0 +1,26 @@
+<!-- FILEPATH: /Users/parimalkashireddy/Desktop/Cybersecurity/secure-file-system/Frontend/files.html -->
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Secure File System</title>
+    </head>
+    <body>
+        <h1>Secure File System</h1>
+        <h2>Upload a File</h2>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" name="file" />
+            <button type="submit">Upload</button>
+        </form>
+        <h2>Delete a File</h2>
+        <form id="deleteForm">
+            <select id="fileSelect" name="file">
+                <option value="" disabled selected>Select a file to delete</option>
+            </select>
+            <button type="submit">Delete</button>
+        </form>
+        <h2>File List</h2>
+        <ul id="fileList"></ul>
+        <script src="files.js"></script>
+    </body>
+</html>
