@@ -1,64 +1,100 @@
-// Get the file input element, the file list element, and the delete button
 const fileInput = document.getElementById('file-input');
 const fileList = document.getElementById('fileList');
 const deleteButton = document.getElementById('delete-button');
+const uploadButton = document.getElementById('upload-button');
 
-// Create an array to store the file objects
 const files = [];
 
-// Add an event listener to the file input element to handle file uploads
 fileInput.addEventListener('change', async (event) => {
     const file = event.target.files[0];
 
-    // Create a file object with metadata
     const fileObject = {
         name: file.name,
         size: file.size,
         type: file.type,
     };
 
-    // Add the file object to the array
     files.push(fileObject);
 
-    // Display the updated file list
     displayFileList();
 });
 
-// Function to delete a file object from the array
-function deleteFile(index) {
-    if (index >= 0 && index < files.length) {
-        files.splice(index, 1); // Remove the file object at the specified index
-        displayFileList();
-    }
-}
+uploadButton.addEventListener('click', async () => {
+    try {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
 
-// Add an event listener to the delete button
-deleteButton.addEventListener('click', () => {
-    // Get the selected file index from the select element
-    const selectedIndex = document.getElementById('fileSelect').value;
-    // Ensure a valid selection before attempting to delete
-    if (selectedIndex) {
-        deleteFile(selectedIndex - 1); // Subtract 1 to adjust for 0-based index
+        const response = await fetch('http://localhost:3000/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log(result);
+            fetchFileList();
+        } else {
+            console.error('Upload failed');
+        }
+    } catch (error) {
+        console.error('Error during upload:', error);
     }
 });
 
-// Function to display the file list
+deleteButton.addEventListener('click', async () => {
+    const selectedIndex = document.getElementById('fileSelect').value;
+
+    if (selectedIndex) {
+        try {
+            const response = await fetch(`http://localhost:3000/delete/${selectedIndex}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log(result);
+                fetchFileList();
+            } else {
+                console.error('Delete failed');
+            }
+        } catch (error) {
+            console.error('Error during delete:', error);
+        }
+    }
+});
+
 function displayFileList() {
-    // Clear the file list element
     fileList.innerHTML = '';
 
-    // Populate the select element with options for file selection
     const fileSelect = document.getElementById('fileSelect');
     fileSelect.innerHTML = '<option value="">Select a file to delete</option>';
+    
     files.forEach((file, index) => {
         const listItem = document.createElement('li');
         listItem.textContent = `File ${index + 1}: ${file.name} (${file.size} bytes)`;
         fileList.appendChild(listItem);
 
-        // Add an option to the select element for each file
         const option = document.createElement('option');
-        option.value = index + 1; // Add 1 to adjust for 1-based index in the select element
+        option.value = index + 1;
         option.textContent = `File ${index + 1}: ${file.name}`;
         fileSelect.appendChild(option);
     });
 }
+
+async function fetchFileList() {
+    try {
+        const response = await fetch('http://localhost:3000/fileList');
+        if (response.ok) {
+            const fileData = await response.json();
+            files.length = 0;
+            files.push(...fileData);
+            displayFileList();
+        } else {
+            console.error('Failed to fetch file list');
+        }
+    } catch (error) {
+        console.error('Error during file list fetch:', error);
+    }
+}
+
+fetchFileList();
