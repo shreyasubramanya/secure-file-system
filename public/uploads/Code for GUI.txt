@@ -1,0 +1,353 @@
+import time
+import datetime
+import csv
+import math
+import tkinter as tk
+import numpy as np
+import serial as sr
+from matplotlib.figure import Figure
+from itertools import count
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.animation import FuncAnimation
+import matplotlib.pyplot as plt
+from tkinter import *
+from tkinter import (simpledialog, filedialog)
+from PIL import ImageTk,Image
+
+# ------global variables
+data = []
+data1 = []
+data2 = []
+p_p=[]
+p_a=[]
+e_a=[]
+e_p=[]
+ch_ab=[]
+ch_ab1=[]
+ch_ep=[]
+ch_ea=[]
+cond = False
+cond_next=False
+chip=100
+bg1="blue"
+
+##============= Frame program
+def show_frame(frame):
+    frame.tkraise()
+
+root = tk.Tk()
+root.state('zoomed')
+
+root.rowconfigure(0, weight=1)
+root.columnconfigure(0, weight=1)
+
+frame1 = tk.Frame(root)
+frame2 = tk.Frame(root)
+frame3 = tk.Frame(root)
+
+
+for frame in (frame1, frame2, frame3):
+    frame.grid(row=0,column=0,sticky='nsew')
+
+
+#==================Frame 1 code
+frames=("frame1")
+frame1_title=  tk.Label(frame1, text='Page 1', font='times 35', bg='Grey')
+frame1_title.pack(fill='both', expand=True)
+w = frame1_title.winfo_screenwidth();
+h = frame1_title.winfo_screenheight()
+
+
+# Introduction text
+T = Label(root, text="Introduction text", borderwidth=10,font=('calbiri', 30, 'bold'), fg="Blue", background='grey')
+T.place(relx=0.5, rely=0.35, anchor=CENTER)
+
+# ---  Introduction and call
+root.update();
+B1 = tk.Button(root, text="Press to start logging", font=('calbiri', 20, 'bold'), bg="Light Green", height=int(h / 250),
+               width=int(w / 80), command=lambda: (main_fun(), next_button()))
+B1.place(relx=0.5, rely=0.5, anchor=CENTER)
+
+def hide_button(widget): 
+    # This will remove the widget from toplevel 
+    widget.pack_forget()
+    
+# -----plot data=== in frame 1-----
+def main_fun():
+    global cond, data, current, w, h, lines, lines1, ax1, ax2, canvas,lines_2, lines_1, lines1_1, input_csv, Icsv, chip, ww
+    B1.forget()
+    T.destroy()
+    frame1 = tk.Frame(root)
+    frame2 = tk.Frame(root)
+    frame3 = tk.Frame(root)
+    
+    
+#------- add figure canvas
+    fig = Figure();
+    ax1 = fig.add_subplot(121);
+    ax2 = fig.add_subplot(122)
+
+    ax1.set_title("Current Data", fontsize=20, weight='bold');
+    ax1.set_xlabel('Seconds', fontsize=10, weight='bold');
+    ax1.set_ylabel('Current', fontsize=10, weight='bold')
+    ax1.tick_params(labelsize=10)
+
+    ax2.set_title('Temperature Data', fontsize=20, weight='bold');
+    ax2.set_xlabel('Seconds', fontsize=10, weight='bold');
+    ax2.set_ylabel('Temperature', fontsize=10, weight='bold')
+    ax2.tick_params(labelsize=10)
+    # ax2.plot(kind='Chart Type such as bar', legend=True, ax=ax2)
+
+    lines = ax1.plot([], [])[0];
+    lines1 = ax1.plot([], [])[0];
+    lines_1 = ax1.plot([], [])[0];
+    
+    lines1_1 = ax1.plot([], [])[0];
+    lines_2 = ax2.plot([], [])[0];
+    lines2_2 = ax2.plot([], [])[0];
+ 
+
+    canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
+    bg1 = canvas.get_tk_widget().place(relx=1, rely=0.8, x=0, y=0.3, width=w, height=h / 2, anchor=SE)
+
+
+#-------------------------color code
+
+    #root.update();
+    # ww=h/100
+    # current = tk.Button(root, bg="Red", height=int(ww/2), width=int(ww),borderwidth=0)
+    # current.place(relx=0.2, rely=0.2, anchor=CENTER)
+    # I = Label(root, text="Current(Amps)", borderwidth=10,font=('calbiri', 15, 'bold'), fg="Black")
+    # I.place(relx=0.2, rely=0.125, anchor=CENTER)
+
+    #root.update();
+    ww=h/100
+    power = tk.Button(root, bg="Red", height=int(ww/2), width=int(ww),borderwidth=0)
+    power.place(relx=0.5, rely=0.2, anchor=CENTER)
+    P = Label(root, text="Power(Watt)", borderwidth=10,font=('calbiri', 15, 'bold'), fg="Black")
+    P.place(relx=0.5, rely=0.125, anchor=CENTER)
+
+
+    #root.update();
+    entropy = tk.Button(root, bg="Red", height=int(ww/2), width=int(ww),borderwidth=0)
+    entropy.place(relx=0.8, rely=0.2, anchor=CENTER)
+    P = Label(root, text="Entropy(J/K)", borderwidth=10,font=('calbiri', 15, 'bold'), fg="Black")
+    P.place(relx=0.8, rely=0.125, anchor=CENTER)
+
+    Status = Label(root, text="Status of Kettle", borderwidth=10,font=('calbiri', 20, 'bold'), fg="Black")
+    Status.place(relx=0.5, rely=0.05, anchor=CENTER)
+    
+# ------------------------buttons
+    #root.update();
+    start = tk.Button(root, text="Start", font=('calbiri', 10, 'bold'), bg="Light green", height=int(h / 600),
+                      width=int(w / 150),borderwidth=10, command=lambda: (plot_start(), next_button(),next_button() ))
+    start.place(relx=0.1, rely=0.9, x=0, y=0.2, anchor=SW)
+
+
+    #root.update();
+    stop1 = tk.Button(root, text="Stop", fg="white", font=('calbiri', 10, 'bold'), bg="Red", height=int(h / 600),
+                      width=int(w / 150),borderwidth=10, command=lambda: plot_stop())
+    stop1.place(relx=0.2, rely=0.9, x=0, y=0.2, anchor=SW)
+
+#    #root.update();
+    next_page1 = tk.Button(root, text="Next   >", fg="white", font=('calbiri', 10, 'bold'), bg="Blue", height=int(h / 600),
+                      width=int(w / 150),borderwidth=10, command=lambda: (frame_fun(), plot_data(), hide_button(current), next_button_1()))
+    next_page1.place(relx=0.9, rely=0.1, x=0, y=0.2, anchor=SW)
+    
+
+
+    quit1 = tk.Button(root, text="Close", fg="white", font=('calbiri', 20, 'bold'), bg="Red", height=int(h / 500),
+                  width=int(w / 100), borderwidth=10, command=lambda: _quit())
+    quit1.place(relx=0.95, rely=0.95, x=0, y=0.2, anchor=SE)
+
+
+def next_button():
+    global cond, data, cond_next, bg1, current, f1, h, previous_page1, lines, lines1, ax1, ax2, canvas, lines_1, lines_2, lines1_1, input_csv, chip, f1
+    current = tk.Button(root, bg="Red", height=int(ww/2), width=int(ww),borderwidth=0)
+    current.place(relx=0.2, rely=0.2, anchor=CENTER)
+    I = Label(root, text="Current(Amps)", borderwidth=10,font=('calbiri', 15, 'bold'), fg="Black")
+    I.place(relx=0.2, rely=0.125, anchor=CENTER)
+    cond_next = True
+    #print(chip)
+    if chip == 0:
+        bg1="Red"
+    elif chip > 10:
+        bg1="Red"
+    elif chip > 1 and chip < 10:
+        bg1="Yellow"
+    elif chip<1:
+        bg1="Green" 
+    s.reset_input_buffer()
+
+def next_button_1():
+    global cond, data, cond_next, bg1, current, f1, h, previous_page1, lines, lines1, ax1, ax2, canvas, lines_1, lines_2, lines1_1, input_csv, chip, f1
+    cond_next = False
+    # current.pack() 
+    #print(cond_next)
+    print(chip)
+    s.reset_input_buffer()
+    
+       
+def plot_start():
+    global cond, data, current, f1, h, previous_page1, lines, lines1, ax1, ax2, canvas, lines_1, lines_2, lines1_1, input_csv, Icsv, f1
+    now = time.strftime('%d-%m-%Y')
+    now1 = time.strftime('%H-%M-%S') #
+    f1=('C:\\Users\\lijeah\\Documents\\CSV_Results\\' + (f'{now}') + '_'+ (f'{now1}')+ '.csv')
+    f2 = open(f1, 'w') 
+    cond = True
+    s.reset_input_buffer()
+
+def plot_stop():
+    global cond, f1, current
+    import pandas as pd
+    Cov = pd.read_csv(f1, sep=',')
+    Frame=pd.DataFrame(Cov.values, columns = ['Date', 'Time', 'Pump_Current [A]', 'Agitator_Current [A] ', 'Temperature [F]', 'Entropy_Pump [J/K]','Entropy_Agitator [J/K]','Change_pump_current [A/s]','Change_agitator_current [A/s]','Change_pump_entropy [J/K/s]','Change_Agitator_entropy [J/K/s]' ])
+    Frame.to_csv(f1, sep=',')
+    cond = False
+    s.reset_input_buffer()
+    
+    
+cont=0;
+def plot_data():
+    global cond, cond_next, bg1, data, current, h, previous_page1, lines, I, lines1, ax1, ax2, canvas, lines_1, lines_2, lines1_1, input_csv, Icsv, f1, chip, ww
+    if (cond == True and cond_next == True):
+        a = s.readline()
+        decoded = str(a[0:len(a) - 2].decode("utf-8"))
+        aa = decoded.split(',')
+        print(aa)
+        ab_ = float(aa[2]);  
+        ab=ab_*0.2+ab_*math.exp(-0.05*len(data));
+        data.append(ab)
+        ab1 = float(aa[2]);        data1.append(ab1)
+        ab3 = float(aa[3]);        data2.append(ab3)
+        #pp1=float(aa[0]); pp=pp1*100; p_p.append(pp)
+        #pa1=float(aa[1]); pa=pa1*100;  p_a.append(pa)
+        ep1=float(aa[2]); ep=ep1*100/ab3; e_p.append(ep)
+        ea1=float(aa[3]); ea=ea1*100/ab3;  e_a.append(ea)
+        chip=0; chia=0; chep=0; chea=0;
+
+        if len(data)>1:
+            ik=len(data)
+            chip=data[ik-2]-data[ik-1];             chia=data1[ik-2]-data1[ik-1]
+            chep=e_p[ik-2]-e_p[ik-1];             chea=e_a[ik-2]-e_a[ik-1]
+            ch_ab.append(chip);             ch_ab1.append(chia)
+            ch_ep.append(chip);             ch_ea.append(chia)
+        
+        if chip == 0:
+            bg1="Red"
+        elif chip > 10:
+            bg1="Red"
+        elif chip > 1 and chip < 10:
+            bg1="Yellow"
+        elif chip<1:
+            bg1="Green" 
+        
+        current = tk.Button(root, bg=bg1, height=int(ww/2), width=int(ww),borderwidth=0)
+        current.place(relx=0.2, rely=0.2, anchor=CENTER)
+        I = Label(root, text="Current(Amps)", borderwidth=10,font=('calbiri', 15, 'bold'), fg="Black")
+        I.place(relx=0.2, rely=0.125, anchor=CENTER)
+        lines.set_xdata(np.arange(0, len(data)))
+        lines.set_ydata(data)
+        lines_1.set_xdata(np.arange(0, len(data1)))
+        lines_1.set_ydata(data1)
+        lines_2.set_xdata(np.arange(0, len(data2)))
+        lines_2.set_ydata(data2)
+
+        
+        if len(data1)<=100:
+            ax1.set_xlim(0, len(data1))
+            ax2.set_xlim(0, len(data1))
+            ab2 = max(data)
+            ax1.set_ylim(0, ab2 + 100)
+            ax2.set_ylim(0, ab2 + 100)
+        elif len(data1)>100:
+            ax1.set_xlim(len(data1)-99, len(data1))
+            ax2.set_xlim(len(data1)-99, len(data1))
+            ab2 = max(data[(len(data1)-99): len(data1)])
+            ax1.set_ylim(0, ab2 + 100)
+            ax2.set_ylim(0, ab2 + 100)
+            
+
+        ax1.legend((lines_2, lines_1), ('Agitator Current','Pump Current'))
+        ax2.legend(['Temperature'])    
+        canvas.draw()
+        now = time.strftime('%d-%m-%Y')   
+        f = open(f1, 'a') 
+        writer = csv.writer(f, delimiter=",")
+        now_1 = time.strftime('%H:%M:%S')
+        writer.writerow([now, now_1, ab, ab1, ab3, ep, ea, chip, chia, chep, chea])
+
+
+    if (cond == True and cond_next == False):
+        current.destroy()
+        I.destroy()
+        
+    root.after(1, plot_data)
+
+
+def hide_button(widget): 
+    # This will remove the widget from toplevel 
+    widget.pack_forget() 
+    
+    
+#==================Frame 2 code
+def frame_fun():
+    global previous_page1, I, current
+    frames=("frame2")
+    show_frame(frame2)
+    frame2_title=  tk.Label(frame2, bg='Grey')
+    frame2_title.pack(fill='both', expand=True)
+
+    previous_page1 = tk.Button(frame2, text="<  Previous", fg="white", font=('calbiri', 10, 'bold'), bg="Blue", height=int(h / 600),
+                      width=int(w / 150),borderwidth=10, command=lambda: (main_fun_1(), next_button()))
+    previous_page1.place(relx=0.05, rely=0.1, x=0, y=0.2, anchor=SW)
+
+    next_page2 = tk.Button(frame2, text="Next   >", fg="white", font=('calbiri', 10, 'bold'), bg="Blue", height=int(h / 600),
+                      width=int(w / 150),borderwidth=10, command=lambda: main_fun_2())
+    next_page2.place(relx=0.9, rely=0.1, x=0, y=0.2, anchor=SW)
+
+    #current = tk.Button(root, bg="Red", height=int(ww/2), width=int(ww),borderwidth=0)  
+
+    quit1 = tk.Button(frame2, text="Close", fg="white", font=('calbiri', 20, 'bold'), bg="Red", height=int(h / 500),
+                  width=int(w / 100), borderwidth=10, command=lambda: _quit())
+    quit1.place(relx=0.95, rely=0.95, x=0, y=0.2, anchor=SE)
+    
+#==================Frame 3 code
+frame3_title=  tk.Label(frame3, text='Page 3', font='times 35', bg='Grey')
+frame3_title.pack(fill='both', expand=True)
+
+
+def main_fun_1():
+    global I, previous_page1
+    frame1 = tk.Frame(root)
+    frame2 = tk.Frame(root)
+    frame3 = tk.Frame(root)
+    main_fun()  
+    previous_page1.destroy()
+    show_frame(frame1)
+   
+#===========
+def main_fun_2():
+    show_frame(frame3)
+    
+# ----closing the window
+#root.update();
+quit1 = tk.Button(frame, text="Close", fg="white", font=('calbiri', 20, 'bold'), bg="Red", height=int(h / 500),
+                  width=int(w / 100), borderwidth=10, command=lambda: _quit())
+quit1.place(relx=0.95, rely=0.95, x=0, y=0.2, anchor=SE)
+
+
+def _quit():
+    global cond
+    root.quit()  # stops mainloop
+    root.destroy()  # this is necessary on Windows to prevent
+    s.close() 
+
+
+
+s = sr.Serial('COM5','9600');
+s.reset_input_buffer()
+root.after(1, plot_data)
+root.mainloop()
+

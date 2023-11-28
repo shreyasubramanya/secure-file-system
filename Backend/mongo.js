@@ -1,20 +1,25 @@
 const mongoose = require('mongoose');
+// const connectionStr = 'mongodb+srv://jooyu9882:ps1yBigwedwN9LFp@cluster0.wecd5ai.mongodb.net/?retryWrites=true&w=majority';
+const connectionStr = 'mongodb+srv://kasiparimal:hKzLOFvPxuaGDiYg@cluster0.goqfart.mongodb.net/?retryWrites=true&w=majority';
 
-// mongoose.connect('mongodb://localhost:27017/SecureFileTransferdb')
-// mongoose.connect('mongodb://localhost:27017/SecureFileTransferdb', { useNewUrlParser: true, useUnifiedTopology: true, serverSelectionTimeoutMS: 30000 })
-// mongoose.connect('mongodb://localhost:27017/SecureFileTransferdb', {
+// mongoose.connect(connectionStr, {
 //   useNewUrlParser: true,
 //   useUnifiedTopology: true,
-//   serverSelectionTimeoutMS: 30000,
-//   poolSize: 10, // Adjust this value based on your needs
 // })
+//   .then(() => console.log('Connected to MongoDB...'))
+//   .catch(err => console.error('Could not connect to MongoDB:', err));
 
-// .then(() => console.log('Connected to MongoDB...'))
-// .catch(err => console.error('Could not connect to MongoDB...'))
+// const userSchema = new mongoose.Schema({//schema is use to design structure of document
+//     msg:{
+//         type:String,
+//         required:true,
+//     }
+// });
 
-// const mongoose = require('mongoose');
+// const collection = new mongoose.model('new Collection',userSchema);//model is use to create collection
 
-const connectionStr = 'mongodb+srv://jooyu9882:ps1yBigwedwN9LFp@cluster0.wecd5ai.mongodb.net/?retryWrites=true&w=majority';
+// module.exports = collection;
+
 
 mongoose.connect(connectionStr, {
   useNewUrlParser: true,
@@ -23,13 +28,21 @@ mongoose.connect(connectionStr, {
   .then(() => console.log('Connected to MongoDB...'))
   .catch(err => console.error('Could not connect to MongoDB:', err));
 
-const userSchema = new mongoose.Schema({//schema is use to design structure of document
-    msg:{
-        type:String,
-        required:true,
-    }
+const fileSchema = new mongoose.Schema({
+  fileName: {
+    type: String,
+    required: true,
+  },
+  filePath: {
+    type: String,
+    required: true,
+  },
+  msg: {
+    type: String,
+    required: true,
+  },
 });
 
-const collection = new mongoose.model('new Collection',userSchema);//model is use to create collection
+const FileModel = mongoose.model('File', fileSchema);
 
-module.exports = collection;
+module.exports = FileModel;
