@@ -49,32 +49,81 @@ const client = ldap.createClient({
 });
 
 //LDAP authentication function
-function authenticateUser(username, password, callback) {
-  const userDN = `uid=${username},ou=people,dc=example,dc=com`;
+// function authenticateUser(username, password, callback) {
+//   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
 
-  client.bind(userDN, password, (err) => {
-    if (err) {
-      console.error('LDAP authentication failed:', err);
-      callback(false);
-    } else {
-      console.log('LDAP authentication successful');
-      callback(true); 
-      client.unbind();
-    }
-  });
+//   client.bind(userDN, password, (err) => {
+//     if (err) {
+//       console.error('LDAP authentication failed:', err);
+//       callback(false);
+//     } else {
+//       console.log('LDAP authentication successful');
+//       callback(true); 
+//       client.unbind();
+//     }
+//   });
+// }
+
+function authenticateUser(username, password, callback) {
+    const userDN = `uid=${username},ou=people,dc=example,dc=com`;
+
+    client.bind(userDN, password, (err) => {
+        if (err) {
+            console.error('LDAP authentication failed:', err);
+            callback(false);
+        } else {
+            console.log('LDAP authentication successful');
+
+            // Define search base and filter
+            const searchBase = 'ou=groups,dc=example,dc=com';
+            const searchFilter = `(member=${userDN})`;
+
+            client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
+                if (err) {
+                    console.error('LDAP search error:', err);
+                    client.unbind();
+                    callback(false);
+                }
+
+                let group = '';
+                res.on('searchEntry', (entry) => {
+                    // Assuming the group name is under a 'cn' attribute
+                    group = entry.object.cn;
+                });
+
+                res.on('end', (result) => {
+                    console.log(`User ${username} belongs to group: ${group}`);
+                    client.unbind();
+                    callback(true, group); // Pass the group information to the callback
+                });
+            });
+        }
+    });
 }
 
 //Login endpoint
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
+// app.post('/login', (req, res) => {
+//   const { username, password } = req.body;
 
-  authenticateUser(username, password, (isAuthenticated) => {
-    if (isAuthenticated) {
-      res.status(200).send('User login successful');
-    } else {
-      res.status(401).send('User login failed');
-    }
-  });
+//   authenticateUser(username, password, (isAuthenticated) => {
+//     if (isAuthenticated) {
+//       res.status(200).send('User login successful');
+//     } else {
+//       res.status(401).send('User login failed');
+//     }
+//   });
+// });
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+
+    authenticateUser(username, password, (isAuthenticated, group) => {
+        if (isAuthenticated) {
+            console.log(`User: ${username}, Group: ${group}`);
+            res.status(200).send(`User login successful, belongs to group: ${group}`);
+        } else {
+            res.status(401).send('User login failed');
+        }
+    });
 });
 
 app.post('/uploadFile', async (req, res) => {
