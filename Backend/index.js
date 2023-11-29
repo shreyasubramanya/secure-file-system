@@ -155,3 +155,14 @@ app.post('/uploadFile', async (req, res) => {
 app.listen(3000, () => {
   console.log('Server is running on port http://localhost:3000/');
 });
+
+app.get('/files', async (req, res) => {
+  try {
+    const files = await FileModel.find();
+    console.log(files);
+    res.send(files);
+  } catch (error) {
+    console.error('Error retrieving files:', error);
+    res.status(500).send('Error retrieving files');
+  }
+});
