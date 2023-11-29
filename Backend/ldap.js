@@ -52,9 +52,10 @@ const express = require('express');
 const ldap = require('ldapjs');
 const bodyParser = require('body-parser');
 const path = require('path');
-const templatePath = path.join(__dirname, '..Frontend/templates');
+const templatePath = path.join(__dirname, '../templates');
 
 const app = express();
+app.use(express.static('Frontend'));
 app.use(bodyParser.json()); // for parsing application/json
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -62,6 +63,17 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Origin, Accept');
   next();
 });
+
+app.set('view engine','hbs');
+app.set('views', templatePath);
+
+app.get('/', (req, res) => {
+    res.render('login');
+  });
+
+app.get('/home', (req, res) => {
+    res.render('home');
+  });
 
 // LDAP client configuration
 const client = ldap.createClient({
@@ -76,9 +88,10 @@ function authenticateUser(username, password, callback) {
     if (err) {
       console.error('LDAP authentication failed:', err);
       callback(false);
+      //window.location.reload();
     } else {
       console.log('LDAP authentication successful');
-      callback(true);
+      callback(true); 
       client.unbind();
     }
   });
