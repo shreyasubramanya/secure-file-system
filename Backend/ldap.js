@@ -3,8 +3,9 @@ const ldap = require('ldapjs');
 const bodyParser = require('body-parser');
 const path = require('path');
 const FileModel = require('./mongo');
+const fs = require('fs');
 const templatePath = path.join(__dirname, '../templates');
-
+const connectionStr1 = 'mongodb+srv://kasiparimal:hKzLOFvPxuaGDiYg@cluster0.goqfart.mongodb.net/?retryWrites=true&w=majority';
 
 
 const app = express();
@@ -38,7 +39,8 @@ app.get('/home', (req, res) => {
 //mongodb connection
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb+srv://shreyasubramanya:Ar56YfIApVmWwLYW@cluster0.u2erbxi.mongodb.net/?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
+// mongoose.connect('mongodb+srv://shreyasubramanya:Ar56YfIApVmWwLYW@cluster0.u2erbxi.mongodb.net/?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
+  mongoose.connect(connectionStr1, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected...'))
   .catch(err => console.error('MongoDB connection error:', err));
 
@@ -63,6 +65,17 @@ const client = ldap.createClient({
 //     }
 //   });
 // }
+
+function logAudit(action, username, fileName) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
+
+  fs.appendFile('audit_log.txt', logMessage, (err) => {
+      if (err) {
+          console.error('Error writing to audit log:', err);
+      }
+  });
+}
 
 function auditLog(message) {
     const timestamp = new Date().toISOString();
@@ -163,6 +176,7 @@ app.post('/uploadFile', async (req, res) => {
   
       await file.mv(filePath);
       await FileModel.create({ fileName, filePath, msg });
+      logAudit('uploaded', req.body.username, fileName);
   
       res.send('File uploaded successfully');
     } catch (error) {
@@ -182,7 +196,10 @@ app.post('/uploadFile', async (req, res) => {
       }
   
       const filePath = file.filePath;
+      logAudit('downloaded', req.query.username, fileName);
       res.download(filePath, fileName);
+      res.send('File downloaded successfully');
+
     } catch (error) {
       console.error('Error downloading file:', error);
       res.status(500).send('Error downloading file');
@@ -209,9 +226,12 @@ app.post('/uploadFile', async (req, res) => {
   
       if (result.deletedCount === 1) {
         res.send('File deleted successfully');
+        logAudit('deleted', req.body.username, fileName);
       } else {
         res.status(404).send('File not found');
       }
+      
+      
     } catch (error) {
       console.error('Error deleting file:', error);
       res.status(500).send('Error deleting file');
