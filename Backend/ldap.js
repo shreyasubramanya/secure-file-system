@@ -64,42 +64,51 @@ const client = ldap.createClient({
 //   });
 // }
 
+function auditLog(message) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${message}`);
+}
+
 function authenticateUser(username, password, callback) {
     const userDN = `uid=${username},ou=people,dc=example,dc=com`;
 
     client.bind(userDN, password, (err) => {
         if (err) {
             console.error('LDAP authentication failed:', err);
-            callback(false);
+            callback(false, []);
         } else {
             console.log('LDAP authentication successful');
 
-            // Define search base and filter
-            const searchBase = 'ou=groups,dc=example,dc=com';
-            const searchFilter = `(member=${userDN})`;
+            // Define search base and filter for groups
+            const searchBase = 'ou=Groups,dc=example,dc=com';
+            const searchFilter = `(memberUid=${username})`;
 
             client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
                 if (err) {
                     console.error('LDAP search error:', err);
                     client.unbind();
-                    callback(false);
+                    callback(false, []);
+                    return;
                 }
 
-                let group = '';
+                let groupCNs = [];
                 res.on('searchEntry', (entry) => {
-                    // Assuming the group name is under a 'cn' attribute
-                    group = entry.object.cn;
+                    if (entry.object && entry.object.cn) {
+                        groupCNs.push(entry.object.cn);
+                    }
                 });
 
                 res.on('end', (result) => {
-                    console.log(`User ${username} belongs to group: ${group}`);
+                    console.log(`User ${username} is part of groups: ${groupCNs.join(', ')}`);
                     client.unbind();
-                    callback(true, group); // Pass the group information to the callback
+                    callback(true, groupCNs); // Return an array of group CNs
                 });
             });
         }
     });
 }
+
+
 
 //Login endpoint
 // app.post('/login', (req, res) => {
@@ -116,15 +125,28 @@ function authenticateUser(username, password, callback) {
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    authenticateUser(username, password, (isAuthenticated, group) => {
+    authenticateUser(username, password, (isAuthenticated, groupCNs) => {
         if (isAuthenticated) {
-            console.log(`User: ${username}, Group: ${group}`);
-            res.status(200).send(`User login successful, belongs to group: ${group}`);
+            console.log(`User: ${username}, Groups: ${groupCNs.join(', ')}`);
+
+            // Determine the features based on group membership
+            let features;
+            if (groupCNs.includes('upload only')) {
+                // Logic for users in the 'upload only' group
+                features = 'uploadOnly';
+            } else {
+                // Logic for other users or additional groups
+                features = 'fullAccess';
+            }
+
+            // Send response with appropriate features
+            res.status(200).json({ message: 'User login successful', features: features });
         } else {
             res.status(401).send('User login failed');
         }
     });
 });
+
 
 app.post('/uploadFile', async (req, res) => {
     console.log(req.files);
