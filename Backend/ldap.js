@@ -1,53 +1,3 @@
-// const ldap = require('ldapjs');
-
-// const client = ldap.createClient({
-//   url: 'ldap://10.211.55.9', //adjust the URL based on your LDAP server configuration
-// });
-
-// client.bind('uid=john,ou=people,dc=example,dc=com', 'admin', (err) => {
-//   if (err) {
-//     console.error('LDAP bind failed:', err);
-//   } else {
-//     console.log('LDAP bind successful');
-
-//     //perform LDAP operations here
-//     /**
-//  * Authenticate a user against the LDAP server.
-//  * @param {string} username - The username of the user.
-//  * @param {string} password - The password of the user.
-//  * @param {function} callback - A callback function to handle the response.
-//  */
-// function authenticateUser(username, password, callback) {
-//   //adjust the DN (Distinguished Name) based on your LDAP server configuration
-//   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
-
-//   client.bind(userDN, password, (err) => {
-//     if (err) {
-//       console.error('LDAP authentication failed:', err);
-//       callback(false); //authentication failed
-//     } else {
-//       console.log('LDAP authentication successful');
-//       callback(true); //authentication successful
-//       client.unbind();
-//     }
-//   });
-// }
-
-// //example usage
-// authenticateUser('john', 'admin', (isAuthenticated) => {
-//   if (isAuthenticated) {
-//     console.log('User login successful');
-//     //handle post-login logic here
-//   } else {
-//     console.log('User login failed');
-//     //handle login failure here
-//   }
-// });
-//   }
-// });
-
-// ////////
-
 const express = require('express');
 const ldap = require('ldapjs');
 const bodyParser = require('body-parser');
@@ -55,6 +5,7 @@ const path = require('path');
 const FileModel = require('./mongo');
 const templatePath = path.join(__dirname, '../templates');
 
+const fileUpload = require('express-fileupload');
 const app = express();
 app.use(express.static('Frontend'));
 app.use(bodyParser.json()); // for parsing application/json
@@ -76,12 +27,20 @@ app.get('/home', (req, res) => {
     res.render('home');
   });
 
-// LDAP client configuration
+//mongodb connection
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb+srv://shreyasubramanya:Ar56YfIApVmWwLYW@cluster0.u2erbxi.mongodb.net/?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected...'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+
+//LDAP client configuration
 const client = ldap.createClient({
-  url: 'ldap://10.211.55.9', // adjust the URL based on your LDAP server configuration
+  url: 'ldap://10.211.55.9', //ldap server URL
 });
 
-// LDAP authentication function
+//LDAP authentication function
 function authenticateUser(username, password, callback) {
   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
 
@@ -89,7 +48,6 @@ function authenticateUser(username, password, callback) {
     if (err) {
       console.error('LDAP authentication failed:', err);
       callback(false);
-      //window.location.reload();
     } else {
       console.log('LDAP authentication successful');
       callback(true); 
@@ -98,7 +56,7 @@ function authenticateUser(username, password, callback) {
   });
 }
 
-// Login endpoint
+//Login endpoint
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
