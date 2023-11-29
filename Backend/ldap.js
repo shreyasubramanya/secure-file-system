@@ -5,8 +5,16 @@ const path = require('path');
 const FileModel = require('./mongo');
 const templatePath = path.join(__dirname, '../templates');
 
-const fileUpload = require('express-fileupload');
+
+
 const app = express();
+
+const fileUpload = require('express-fileupload');
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(fileUpload());
+
 app.use(express.static('Frontend'));
 app.use(bodyParser.json()); // for parsing application/json
 app.use((req, res, next) => {
@@ -68,7 +76,10 @@ app.post('/login', (req, res) => {
     }
   });
 });
+
 app.post('/uploadFile', async (req, res) => {
+    console.log(req.files);
+
     try {
       if (!req.files || Object.keys(req.files).length === 0) {
         return res.status(400).send('No file uploaded');
@@ -89,6 +100,23 @@ app.post('/uploadFile', async (req, res) => {
     }
   });
   
+  app.get('/downloadFile/', async (req, res) => {
+    const fileName = req.query.fileName;
+  
+    try {
+      const file = await FileModel.findOne({ fileName: fileName });
+  
+      if (!file) {
+        return res.status(404).send('File not found');
+      }
+  
+      const filePath = file.filePath;
+      res.download(filePath, fileName);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      res.status(500).send('Error downloading file');
+    }
+  });
 
   
   app.get('/files', async (req, res) => {

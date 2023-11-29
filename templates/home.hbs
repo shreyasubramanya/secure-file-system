@@ -17,13 +17,17 @@
 </form>
 <form action="/uploadFile" method="post" enctype="multipart/form-data">
     <input type="file" name="file">
-    
     <input type="submit" value="Upload">
 </form>
 
 <form action="/deleteFile" method="post">
     <input type="text" placeholder="Enter file name" name="fileName">
     <input type="submit" value="Delete">
+</form>
+
+<form action="/downloadFile/" method="get">
+    <input type="text" placeholder="Enter file name" name="fileName">
+    <input type="submit" value="Download">
 </form>
 
 </html>
