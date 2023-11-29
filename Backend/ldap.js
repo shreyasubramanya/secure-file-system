@@ -52,6 +52,7 @@ const express = require('express');
 const ldap = require('ldapjs');
 const bodyParser = require('body-parser');
 const path = require('path');
+const FileModel = require('./mongo');
 const templatePath = path.join(__dirname, '../templates');
 
 const app = express();
@@ -109,6 +110,56 @@ app.post('/login', (req, res) => {
     }
   });
 });
+app.post('/uploadFile', async (req, res) => {
+    try {
+      if (!req.files || Object.keys(req.files).length === 0) {
+        return res.status(400).send('No file uploaded');
+      }
+  
+      const file = req.files.file;
+      const fileName = file.name;
+      const filePath = path.join(__dirname, '../public/uploads/', fileName);
+      const msg = 'File uploaded: ' + fileName;
+  
+      await file.mv(filePath);
+      await FileModel.create({ fileName, filePath, msg });
+  
+      res.send('File uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      res.status(500).send('Error uploading file');
+    }
+  });
+  
+
+  
+  app.get('/files', async (req, res) => {
+    try {
+      const files = await FileModel.find();
+      console.log(files);
+      res.send(files);
+    } catch (error) {
+      console.error('Error retrieving files:', error);
+      res.status(500).send('Error retrieving files');
+    }
+  });
+
+  app.post('/deleteFile', async (req, res) => {
+    const fileName = req.body.fileName;
+  
+    try {
+      const result = await FileModel.deleteOne({ fileName: fileName });
+  
+      if (result.deletedCount === 1) {
+        res.send('File deleted successfully');
+      } else {
+        res.status(404).send('File not found');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      res.status(500).send('Error deleting file');
+    }
+  });
 
 app.use(express.static('Frontend'));
 

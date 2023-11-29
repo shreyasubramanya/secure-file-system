@@ -50,33 +50,33 @@
     </form>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
-            event.preventDefault();
+    document.getElementById('loginForm').addEventListener('submit', function(event) {
+        event.preventDefault();
 
-            var username = document.getElementById('username').value;
-            var password = document.getElementById('password').value;
+        var username = document.getElementById('username').value;
+        var password = document.getElementById('password').value;
 
-            fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username: username, password: password })
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error('Login failed');
-                }
-            })
-            .then(data => {
-                alert(data);
-            })
-            .catch(error => {
-                alert(error.message);
-            });
+        fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username: username, password: password })
+        })
+        .then(response => {
+            if (response.ok) {
+                // Redirect to a new page on successful login
+                window.location.href = '/home'; // Change '/dashboard' to your desired path
+            } else {
+                // Refresh the page on failed login
+                alert('Login failed. Please try again.');
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            alert(error.message);
         });
-    </script>
+    });
+</script>
 </body>
 </html>
