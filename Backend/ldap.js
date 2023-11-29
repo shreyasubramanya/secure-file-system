@@ -33,7 +33,7 @@
 //   });
 // }
 
-//example usage
+// //example usage
 // authenticateUser('john', 'admin', (isAuthenticated) => {
 //   if (isAuthenticated) {
 //     console.log('User login successful');
