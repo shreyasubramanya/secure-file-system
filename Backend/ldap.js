@@ -7,6 +7,7 @@ const fs = require('fs');
 const templatePath = path.join(__dirname, '../templates');
 
 user = 'user';
+passwd = 'password'
 
 const app = express();
 
@@ -70,6 +71,7 @@ function logAudit(action, username, fileName) {
 function authenticateUser(username, password, callback) {
   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
   user = `uid=${username},ou=people,dc=example,dc=com`;
+  passwd = password;
 
   client.bind(userDN, password, (err) => {
       if (err) {
@@ -108,51 +110,7 @@ function authenticateUser(username, password, callback) {
   });
 }
 
-// Function to search for a user and get gidNumber
-function getGidNumber(username, callback) {
-    // Bind to LDAP server with a valid user if needed
-    client.bind('cn=admin,dc=example,dc=com', 'admin', (err) => {
-        if (err) {
-            console.error('LDAP bind failed:', err);
-            return callback(err, null);
-        }
-
-        // Define search base and filter
-        const searchBase = 'ou=people,dc=example,dc=com'; // Adjust based on your directory structure
-        const searchFilter = `(uid=${username})`; // Filter to search for the specific user
-
-        client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
-            if (err) {
-                console.error('LDAP search error:', err);
-                return callback(err, null);
-            }
-
-            let gidNumber = null;
-
-            res.on('searchEntry', (entry) => {
-                if (entry.object && entry.object.gidNumber) {
-                    gidNumber = entry.object.gidNumber;
-                    console.log(gidNumber);
-                }
-            });
-
-            res.on('end', () => {
-                client.unbind(); // Unbind after search operation
-                callback(null, gidNumber);
-            });
-        });
-    });
-}
-
-// Example usage
-getGidNumber('john', (err, gidNumber) => {
-    if (err) {
-        console.error('Error:', err);
-    } else {
-        console.log(`User john's gidNumber: ${gidNumber}`);
-    }
-});
-
+//login requests handler
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
@@ -261,7 +219,58 @@ app.post('/uploadFile', async (req, res) => {
 
 app.use(express.static('Frontend'));
 
+// // This function retrieves all attributes for a given username from the LDAP server
+// function getAllAttributesForUser(username, callback) {
+//   const ldapUrl = 'ldap://10.211.55.9'; // Replace with your LDAP server URL
+//   const baseDN = 'ou=groups,dc=example,dc=com'; // Replace with your base DN
 
+//   const client = ldap.createClient({
+//       url: ldapUrl
+//   });
+
+//   client.bind('cn=admin', passwd, (err) => {
+//       if (err) {
+//           console.error('LDAP bind failed:', err);
+//           callback(err, null);
+//           return;
+//       }
+
+//       const searchOptions = {
+//           scope: 'sub',
+//           filter: `(uid=${username})` // Adjust this filter based on your LDAP schema
+//       };
+
+//       client.search(baseDN, searchOptions, (err, res) => {
+//           if (err) {
+//               console.error('LDAP search error:', err);
+//               callback(err, null);
+//               return;
+//           }
+
+//           let userAttributes = null;
+
+//           res.on('searchEntry', (entry) => {
+//               userAttributes = entry.object;
+//               console.log('Entry:', entry.object);
+//           });
+
+//           res.on('end', (result) => {
+//               console.log('Search completed.');
+//               client.unbind();
+//               callback(null, userAttributes); // Return all attributes of the user
+//           });
+//       });
+//   });
+// }
+
+// // Example usage
+// getAllAttributesForUser('john', (err, attributes) => {
+//   if (err) {
+//       console.error('Error:', err);
+//   } else {
+//       console.log('User Attributes:', attributes);
+//   }
+// });
 
 // Start the server
 const PORT = 3000;
