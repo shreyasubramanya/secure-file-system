@@ -185,13 +185,23 @@ app.post('/uploadFile', async (req, res) => {
   });
 
   
+  // app.get('/files', async (req, res) => {
+  //   try {
+  //     const files = await FileModel.find();
+  //     console.log(files);
+  //     res.send(files);
+  //     // res.json(files);
+
+  //   } catch (error) {
+  //     console.error('Error retrieving files:', error);
+  //     res.status(500).send('Error retrieving files');
+  //   }
+  // });
+
   app.get('/files', async (req, res) => {
     try {
-      const files = await FileModel.find();
-      console.log(files);
-      res.send(files);
-      // res.json(files);
-
+      const files = await FileModel.find({}, 'fileName'); // Select only the fileName field
+      res.json(files.map(file => ({ fileName: file.fileName })));
     } catch (error) {
       console.error('Error retrieving files:', error);
       res.status(500).send('Error retrieving files');
@@ -218,59 +228,6 @@ app.post('/uploadFile', async (req, res) => {
   });
 
 app.use(express.static('Frontend'));
-
-// // This function retrieves all attributes for a given username from the LDAP server
-// function getAllAttributesForUser(username, callback) {
-//   const ldapUrl = 'ldap://10.211.55.9'; // Replace with your LDAP server URL
-//   const baseDN = 'ou=groups,dc=example,dc=com'; // Replace with your base DN
-
-//   const client = ldap.createClient({
-//       url: ldapUrl
-//   });
-
-//   client.bind('cn=admin', passwd, (err) => {
-//       if (err) {
-//           console.error('LDAP bind failed:', err);
-//           callback(err, null);
-//           return;
-//       }
-
-//       const searchOptions = {
-//           scope: 'sub',
-//           filter: `(uid=${username})` // Adjust this filter based on your LDAP schema
-//       };
-
-//       client.search(baseDN, searchOptions, (err, res) => {
-//           if (err) {
-//               console.error('LDAP search error:', err);
-//               callback(err, null);
-//               return;
-//           }
-
-//           let userAttributes = null;
-
-//           res.on('searchEntry', (entry) => {
-//               userAttributes = entry.object;
-//               console.log('Entry:', entry.object);
-//           });
-
-//           res.on('end', (result) => {
-//               console.log('Search completed.');
-//               client.unbind();
-//               callback(null, userAttributes); // Return all attributes of the user
-//           });
-//       });
-//   });
-// }
-
-// // Example usage
-// getAllAttributesForUser('john', (err, attributes) => {
-//   if (err) {
-//       console.error('Error:', err);
-//   } else {
-//       console.log('User Attributes:', attributes);
-//   }
-// });
 
 // Start the server
 const PORT = 3000;
