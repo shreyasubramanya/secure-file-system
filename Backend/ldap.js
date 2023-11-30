@@ -3,6 +3,7 @@ const ldap = require('ldapjs');
 const bodyParser = require('body-parser');
 const path = require('path');
 const FileModel = require('./mongo');
+const fs = require('fs');
 const templatePath = path.join(__dirname, '../templates');
 
 const app = express();
@@ -46,11 +47,6 @@ const client = ldap.createClient({
   url: 'ldap://10.211.55.9', //ldap server URL
 });
 
-//audit function
-function auditLog(message) {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] ${message}`);
-}
 
 //map out group permissions
 const groupPermissions = {
@@ -97,6 +93,19 @@ const groupPermissions = {
 //         }
 //     });
 // }
+
+
+function logAudit(action, fileName) {
+  const timestamp = new Date().toISOString();
+  const username = req.body.username;
+  const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
+
+  fs.appendFile('audit_log.txt', logMessage, (err) => {
+      if (err) {
+          console.error('Error writing to audit log:', err);
+      }
+  });
+}
 
 function authenticateUser(username, password, callback) {
   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
@@ -205,6 +214,8 @@ app.post('/uploadFile', async (req, res) => {
       await FileModel.create({ fileName, filePath, msg });
   
       res.send('File uploaded successfully');
+      logAudit('uploaded', req.body.username, fileName);
+
     } catch (error) {
       console.error('Error uploading file:', error);
       res.status(500).send('Error uploading file');
@@ -223,6 +234,7 @@ app.post('/uploadFile', async (req, res) => {
   
       const filePath = file.filePath;
       res.download(filePath, fileName);
+      logAudit('downloaded', req.body.username, fileName);
     } catch (error) {
       console.error('Error downloading file:', error);
       res.status(500).send('Error downloading file');
@@ -249,6 +261,7 @@ app.post('/uploadFile', async (req, res) => {
   
       if (result.deletedCount === 1) {
         res.send('File deleted successfully');
+        logAudit('deleted', req.body.username, fileName);
       } else {
         res.status(404).send('File not found');
       }
