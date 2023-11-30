@@ -186,7 +186,7 @@ app.post('/uploadFile', async (req, res) => {
       const files = await FileModel.find();
       console.log(files);
       res.send(files);
-      res.json(files);
+      // res.json(files);
 
     } catch (error) {
       console.error('Error retrieving files:', error);
