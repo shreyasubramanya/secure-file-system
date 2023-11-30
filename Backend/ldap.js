@@ -68,46 +68,6 @@ function logAudit(action, username, fileName) {
   });
 }
 
-//function to authenticate user and retrieve group CN
-// function authenticateUser(username, password, callback) {
-//   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
-
-//   client.bind(userDN, password, (err) => {
-//       if (err) {
-//           console.error('LDAP authentication failed:', err);
-//           callback(false, null);
-//       } else {
-//           console.log('LDAP authentication successful');
-
-//           // Adjust the search base to the groups and the filter to find groups containing the user
-//           const searchBase = 'ou=Groups,dc=example,dc=com';
-//           const searchFilter = `(memberUid=${username})`;
-
-//           client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
-//               if (err) {
-//                   console.error('LDAP search error:', err);
-//                   client.unbind();
-//                   callback(false, null);
-//                   return;
-//               }
-
-//               let groupCN = 'null';
-//               res.on('searchEntry', (entry) => {
-//                   if (entry.object && entry.object.cn) {
-//                       groupCN = entry.object.cn; // Extract the group CN
-//                   }
-//               });
-
-//               res.on('end', (result) => {
-//                   console.log(`User ${username} belongs to group: ${groupCN}`);
-//                   client.unbind();
-//                   callback(true, groupCN); // Return the group CN
-//               });
-//           });
-//       }
-//   });
-// }
-
 function authenticateUser(username, password, callback) {
   const userDN = `uid=${username},ou=People,dc=example,dc=com`;
 
@@ -152,32 +112,6 @@ function authenticateUser(username, password, callback) {
       }
   });
 }
-
-// Login request handler
-// app.post('/login', (req, res) => {
-//   const { username, password } = req.body;
-
-//   authenticateUser(username, password, (isAuthenticated, groupCN) => {
-//       if (isAuthenticated) {
-//           console.log(`User: ${username}, Group: ${groupCN}`);
-
-//           // Determine features based on groupCN
-//           let features;
-//           if (groupCN === 'upload only') {
-//               features = 'uploadOnly';
-//           } else if (groupCN === 'full access') {
-//               features = 'fullAccess';
-//           } else {
-//               features = 'limitedAccess'; // Default or other specific roles
-//           }
-
-//           // Send response with appropriate features
-//           res.status(200).json({ message: 'User login successful', features: features });
-//       } else {
-//           res.status(401).send('User login failed');
-//       }
-//   });
-// });
 
 // Login request handler
 app.post('/login', (req, res) => {
