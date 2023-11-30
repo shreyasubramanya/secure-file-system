@@ -261,6 +261,8 @@ app.post('/uploadFile', async (req, res) => {
 
 app.use(express.static('Frontend'));
 
+
+
 // Start the server
 const PORT = 3000;
 app.listen(PORT, () => {
