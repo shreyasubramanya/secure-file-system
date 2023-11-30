@@ -45,139 +45,139 @@ const connectionStr = 'mongodb+srv://kasiparimal:hKzLOFvPxuaGDiYg@cluster0.goqfa
 
 
 //LDAP client configuration
-const client = ldap.createClient({
-  url: 'ldap://10.211.55.9', //ldap server URL
-});
+// const client = ldap.createClient({
+//   url: 'ldap://10.211.55.9', //ldap server URL
+// });
 
 
 //map out group permissions
-const groupPermissions = {
-    'upload only': ['upload'],
-    'full access': ['upload', 'download', 'delete', 'view']
-};
+// const groupPermissions = {
+//     'upload only': ['upload'],
+//     'full access': ['upload', 'download', 'delete', 'view']
+// };
 
-function logAudit(action, username, fileName) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
+// function logAudit(action, username, fileName) {
+//   const timestamp = new Date().toISOString();
+//   const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
 
-  fs.appendFile('audit_log.txt', logMessage, (err) => {
-    if (err) {
-      console.error('Error writing to audit log:', err);
-    }
-  });
-}
+//   fs.appendFile('audit_log.txt', logMessage, (err) => {
+//     if (err) {
+//       console.error('Error writing to audit log:', err);
+//     }
+//   });
+// }
 
-function authenticateUser(username, password, callback) {
-  const userDN = `uid=${username},ou=people,dc=example,dc=com`;
-  user = `uid=${username},ou=people,dc=example,dc=com`;
+// function authenticateUser(username, password, callback) {
+//   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
+//   user = `uid=${username},ou=people,dc=example,dc=com`;
 
-  client.bind(userDN, password, (err) => {
-      if (err) {
-          console.error('LDAP authentication failed:', err);
-          callback(false, null);
-      } else {
-          console.log('LDAP authentication successful');
+//   client.bind(userDN, password, (err) => {
+//       if (err) {
+//           console.error('LDAP authentication failed:', err);
+//           callback(false, null);
+//       } else {
+//           console.log('LDAP authentication successful');
 
-          // Define search base for the user and a simple filter
-          const searchBase = userDN;
-          const searchFilter = `(uid=${username})`;
+//           // Define search base for the user and a simple filter
+//           const searchBase = userDN;
+//           const searchFilter = `(uid=${username})`;
 
-          client.search(searchBase, { filter: searchFilter, scope: 'base' }, (err, res) => {
-              if (err) {
-                  console.error('LDAP search error:', err);
-                  client.unbind();
-                  callback(false, null);
-                  return;
-              }
+//           client.search(searchBase, { filter: searchFilter, scope: 'base' }, (err, res) => {
+//               if (err) {
+//                   console.error('LDAP search error:', err);
+//                   client.unbind();
+//                   callback(false, null);
+//                   return;
+//               }
 
-              let gidNumber = null;
-              res.on('searchEntry', (entry) => {
-                console.log('LDAP entry:', entry.object); // Additional logging
-                  if (entry.object && entry.object.gidNumber) {
-                      gidNumber = entry.object.gidNumber;
-                  }
-              });
+//               let gidNumber = null;
+//               res.on('searchEntry', (entry) => {
+//                 console.log('LDAP entry:', entry.object); // Additional logging
+//                   if (entry.object && entry.object.gidNumber) {
+//                       gidNumber = entry.object.gidNumber;
+//                   }
+//               });
 
-              res.on('end', (result) => {
-                  console.log(`User ${username} has gidNumber: ${gidNumber}`);
-                  client.unbind();
-                  callback(true, gidNumber); // Return the gidNumber
-              });
-          });
-      }
-  });
-}
+//               res.on('end', (result) => {
+//                   console.log(`User ${username} has gidNumber: ${gidNumber}`);
+//                   client.unbind();
+//                   callback(true, gidNumber); // Return the gidNumber
+//               });
+//           });
+//       }
+//   });
+// }
 
-// Function to search for a user and get gidNumber
-function getGidNumber(username, callback) {
-    // Bind to LDAP server with a valid user if needed
-    client.bind('cn=admin,dc=example,dc=com', 'admin', (err) => {
-        if (err) {
-            console.error('LDAP bind failed:', err);
-            return callback(err, null);
-        }
+// // Function to search for a user and get gidNumber
+// function getGidNumber(username, callback) {
+//     // Bind to LDAP server with a valid user if needed
+//     client.bind('cn=admin,dc=example,dc=com', 'admin', (err) => {
+//         if (err) {
+//             console.error('LDAP bind failed:', err);
+//             return callback(err, null);
+//         }
 
-        // Define search base and filter
-        const searchBase = 'ou=people,dc=example,dc=com'; // Adjust based on your directory structure
-        const searchFilter = `(uid=${username})`; // Filter to search for the specific user
+//         // Define search base and filter
+//         const searchBase = 'ou=people,dc=example,dc=com'; // Adjust based on your directory structure
+//         const searchFilter = `(uid=${username})`; // Filter to search for the specific user
 
-        client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
-            if (err) {
-                console.error('LDAP search error:', err);
-                return callback(err, null);
-            }
+//         client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
+//             if (err) {
+//                 console.error('LDAP search error:', err);
+//                 return callback(err, null);
+//             }
 
-            let gidNumber = null;
+//             let gidNumber = null;
 
-            res.on('searchEntry', (entry) => {
-                if (entry.object && entry.object.gidNumber) {
-                    gidNumber = entry.object.gidNumber;
-                    console.log(gidNumber);
-                }
-            });
+//             res.on('searchEntry', (entry) => {
+//                 if (entry.object && entry.object.gidNumber) {
+//                     gidNumber = entry.object.gidNumber;
+//                     console.log(gidNumber);
+//                 }
+//             });
 
-            res.on('end', () => {
-                client.unbind(); // Unbind after search operation
-                callback(null, gidNumber);
-            });
-        });
-    });
-}
+//             res.on('end', () => {
+//                 client.unbind(); // Unbind after search operation
+//                 callback(null, gidNumber);
+//             });
+//         });
+//     });
+// }
 
-// Example usage
-getGidNumber('john', (err, gidNumber) => {
-    if (err) {
-        console.error('Error:', err);
-    } else {
-        console.log(`User john's gidNumber: ${gidNumber}`);
-    }
-});
+// // Example usage
+// getGidNumber('john', (err, gidNumber) => {
+//     if (err) {
+//         console.error('Error:', err);
+//     } else {
+//         console.log(`User john's gidNumber: ${gidNumber}`);
+//     }
+// });
 
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
+// app.post('/login', (req, res) => {
+//   const { username, password } = req.body;
 
-  authenticateUser(username, password, (isAuthenticated, gidNumber) => {
-      if (isAuthenticated) {
-          console.log(`User: ${username}, gidNumber: ${gidNumber}`);
+//   authenticateUser(username, password, (isAuthenticated, gidNumber) => {
+//       if (isAuthenticated) {
+//           console.log(`User: ${username}, gidNumber: ${gidNumber}`);
 
-          // Determine the features based on gidNumber
-          let features;
-          // Here, you need to map gidNumbers to specific features or roles
-          // For example, if gidNumber is for 'upload only' group
-          req.body.username = username;
-          if (gidNumber === 5002) {
-              features = 'uploadOnly';
-          } else {
-              features = 'fullAccess'; // Default or other specific roles
-          }
+//           // Determine the features based on gidNumber
+//           let features;
+//           // Here, you need to map gidNumbers to specific features or roles
+//           // For example, if gidNumber is for 'upload only' group
+//           req.body.username = username;
+//           if (gidNumber === 5002) {
+//               features = 'uploadOnly';
+//           } else {
+//               features = 'fullAccess'; // Default or other specific roles
+//           }
 
-          // Send response with appropriate features
-          res.status(200).json({ message: 'User login successful', features: features });
-      } else {
-          res.status(401).send('User login failed');
-      }
-  });
-});
+//           // Send response with appropriate features
+//           res.status(200).json({ message: 'User login successful', features: features });
+//       } else {
+//           res.status(401).send('User login failed');
+//       }
+//   });
+// });
 
 
 app.post('/uploadFile', async (req, res) => {
@@ -227,7 +227,8 @@ app.post('/uploadFile', async (req, res) => {
   });
 
   
-  app.get('/files', async (req, res) => {
+  app.post('/list', async (req, res) => {
+    console.log("hello im file");
     try {
       const files = await FileModel.find();
       console.log(files);

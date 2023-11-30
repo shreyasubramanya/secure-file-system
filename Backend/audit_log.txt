@@ -1,0 +1,8 @@
+2023-11-30T03:42:36.038Z - User uid=john,ou=people,dc=example,dc=com uploaded matlab_crash_dump.19939-1
+2023-11-30T03:42:41.395Z - User uid=john,ou=people,dc=example,dc=com downloaded matlab_crash_dump.19939-1
+2023-11-30T03:42:44.325Z - User uid=john,ou=people,dc=example,dc=com deleted matlab_crash_dump.19939-1
+2023-11-30T03:42:46.521Z - User uid=john,ou=people,dc=example,dc=com deleted matlab_crash_dump.19939-1
+2023-11-30T03:42:47.789Z - User uid=john,ou=people,dc=example,dc=com deleted matlab_crash_dump.19939-1
+2023-11-30T03:45:30.711Z - User uid=john,ou=people,dc=example,dc=com uploaded matlab_crash_dump.19939-1
+2023-11-30T03:46:37.228Z - User uid=john,ou=people,dc=example,dc=com uploaded matlab_crash_dump.19939-1
+2023-11-30T03:48:22.527Z - User uid=john,ou=people,dc=example,dc=com uploaded matlab_crash_dump.19939-1
