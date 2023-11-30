@@ -17,7 +17,7 @@ const connectionStr = 'mongodb+srv://kasiparimal:hKzLOFvPxuaGDiYg@cluster0.goqfa
 
 //declare user as global variable for auditing function
 user = 'user';
-passwd = 'password'
+passwd = 'password';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -70,6 +70,8 @@ function logAudit(action, username, fileName) {
 
 function authenticateUser(username, password, callback) {
   const userDN = `uid=${username},ou=People,dc=example,dc=com`;
+
+  user = `uid=${username},ou=People,dc=example,dc=com`;
 
   client.bind(userDN, password, (err) => {
       if (err) {
