@@ -95,15 +95,14 @@ const groupPermissions = {
 // }
 
 
-function logAudit(action, fileName) {
+function logAudit(action, username, fileName) {
   const timestamp = new Date().toISOString();
-  const username = req.body.username;
   const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
 
   fs.appendFile('audit_log.txt', logMessage, (err) => {
-      if (err) {
-          console.error('Error writing to audit log:', err);
-      }
+    if (err) {
+      console.error('Error writing to audit log:', err);
+    }
   });
 }
 
@@ -182,6 +181,7 @@ app.post('/login', (req, res) => {
           let features;
           // Here, you need to map gidNumbers to specific features or roles
           // For example, if gidNumber is for 'upload only' group
+          req.body.username = username;
           if (gidNumber === 5002) {
               features = 'uploadOnly';
           } else {
@@ -212,10 +212,10 @@ app.post('/uploadFile', async (req, res) => {
   
       await file.mv(filePath);
       await FileModel.create({ fileName, filePath, msg });
-  
-      res.send('File uploaded successfully');
       logAudit('uploaded', req.body.username, fileName);
 
+      res.send('File uploaded successfully');
+      
     } catch (error) {
       console.error('Error uploading file:', error);
       res.status(500).send('Error uploading file');
@@ -234,7 +234,6 @@ app.post('/uploadFile', async (req, res) => {
   
       const filePath = file.filePath;
       res.download(filePath, fileName);
-      logAudit('downloaded', req.body.username, fileName);
     } catch (error) {
       console.error('Error downloading file:', error);
       res.status(500).send('Error downloading file');
@@ -262,6 +261,7 @@ app.post('/uploadFile', async (req, res) => {
       if (result.deletedCount === 1) {
         res.send('File deleted successfully');
         logAudit('deleted', req.body.username, fileName);
+
       } else {
         res.status(404).send('File not found');
       }
