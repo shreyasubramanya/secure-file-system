@@ -77,10 +77,6 @@ function logAudit(action, username, fileName) {
   });
 }
 
-function auditLog(message) {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] ${message}`);
-}
 
 function authenticateUser(username, password, callback) {
     const userDN = `uid=${username},ou=people,dc=example,dc=com`;
