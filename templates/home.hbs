@@ -29,5 +29,25 @@
     <input type="text" placeholder="Enter file name" name="fileName">
     <input type="submit" value="Download">
 </form>
+<div id="fileList">
+        <p>FIles that are now in database</p>
+    </div>
 
+    <!-- Your existing forms for upload, delete, and download -->
+
+    <script>
+        // Fetch and display files when the page loads
+        window.onload = async function () {
+            const response = await fetch('/files');
+            const files = await response.json();
+
+            // Display files in the #fileList div
+            const fileListDiv = document.getElementById('fileList');
+            files.forEach(file => {
+                const fileElement = document.createElement('p');
+                fileElement.textContent = file.fileName;
+                fileListDiv.appendChild(fileElement);
+            });
+        };
+    </script>
 </html>
