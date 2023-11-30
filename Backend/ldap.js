@@ -66,8 +66,9 @@ const client = ldap.createClient({
 //   });
 // }
 
-function logAudit(action, username, fileName) {
+function logAudit(action, fileName) {
   const timestamp = new Date().toISOString();
+  const username = req.body.username;
   const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
 
   fs.appendFile('audit_log.txt', logMessage, (err) => {
