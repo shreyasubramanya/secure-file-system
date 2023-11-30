@@ -28,11 +28,11 @@ app.use((req, res, next) => {
 app.set('view engine','hbs');
 app.set('views', templatePath);
 
-app.get('/', (req, res) => {
-    res.render('login');
-  });
+// app.get('/', (req, res) => {
+//     res.render('login');
+//   });
 
-app.get('/home', (req, res) => {
+app.get('/', (req, res) => {
     res.render('home');
   });
 
@@ -197,7 +197,7 @@ app.post('/uploadFile', async (req, res) => {
   
       await file.mv(filePath);
       await FileModel.create({ fileName, filePath, msg });
-      logAudit('uploaded', user, fileName);
+      //logAudit('uploaded', user, fileName);
 
       res.send('File uploaded successfully');
       
@@ -219,7 +219,7 @@ app.post('/uploadFile', async (req, res) => {
   
       const filePath = file.filePath;
       res.download(filePath, fileName);
-      logAudit('downloaded', user, fileName);
+      //logAudit('downloaded', user, fileName);
     } catch (error) {
       console.error('Error downloading file:', error);
       res.status(500).send('Error downloading file');
@@ -233,7 +233,7 @@ app.post('/uploadFile', async (req, res) => {
       const files = await FileModel.find();
       console.log(files);
       res.send(files);
-      res.json(files);
+      // res.json(files);
 
     } catch (error) {
       console.error('Error retrieving files:', error);
@@ -249,7 +249,7 @@ app.post('/uploadFile', async (req, res) => {
   
       if (result.deletedCount === 1) {
         res.send('File deleted successfully');
-        logAudit('deleted', user, fileName);
+        //logAudit('deleted', user, fileName);
 
       } else {
         res.status(404).send('File not found');
