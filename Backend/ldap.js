@@ -92,6 +92,7 @@ function authenticateUser(username, password, callback) {
 
               let gidNumber = null;
               res.on('searchEntry', (entry) => {
+                console.log('LDAP entry:', entry.object); // Additional logging
                   if (entry.object && entry.object.gidNumber) {
                       gidNumber = entry.object.gidNumber;
                   }
@@ -106,6 +107,51 @@ function authenticateUser(username, password, callback) {
       }
   });
 }
+
+// Function to search for a user and get gidNumber
+function getGidNumber(username, callback) {
+    // Bind to LDAP server with a valid user if needed
+    client.bind('cn=admin,dc=example,dc=com', 'admin', (err) => {
+        if (err) {
+            console.error('LDAP bind failed:', err);
+            return callback(err, null);
+        }
+
+        // Define search base and filter
+        const searchBase = 'ou=people,dc=example,dc=com'; // Adjust based on your directory structure
+        const searchFilter = `(uid=${username})`; // Filter to search for the specific user
+
+        client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
+            if (err) {
+                console.error('LDAP search error:', err);
+                return callback(err, null);
+            }
+
+            let gidNumber = null;
+
+            res.on('searchEntry', (entry) => {
+                if (entry.object && entry.object.gidNumber) {
+                    gidNumber = entry.object.gidNumber;
+                    console.log(gidNumber);
+                }
+            });
+
+            res.on('end', () => {
+                client.unbind(); // Unbind after search operation
+                callback(null, gidNumber);
+            });
+        });
+    });
+}
+
+// Example usage
+getGidNumber('john', (err, gidNumber) => {
+    if (err) {
+        console.error('Error:', err);
+    } else {
+        console.log(`User john's gidNumber: ${gidNumber}`);
+    }
+});
 
 app.post('/login', (req, res) => {
   const { username, password } = req.body;

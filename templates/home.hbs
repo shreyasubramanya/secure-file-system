@@ -29,6 +29,12 @@
     <input type="text" placeholder="Enter file name" name="fileName">
     <input type="submit" value="Download">
 </form>
+<h2>Files in MongoDB:</h2>
+<ul>
+    {{#each files}}
+        <li>{{this.name}}</li>
+    {{/each}}
+</ul>
 
 <p action="/list" method="get">This should be list</p>
 </html>
