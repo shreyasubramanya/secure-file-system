@@ -186,7 +186,7 @@ app.post('/uploadFile', async (req, res) => {
       const files = await FileModel.find();
       console.log(files);
       res.send(files);
-      // res.json(files);
+      res.json(files);
 
     } catch (error) {
       console.error('Error retrieving files:', error);
@@ -213,6 +213,17 @@ app.post('/uploadFile', async (req, res) => {
     }
   });
 
+  app.get('/list', async (req, res) => {
+    try {
+      const files = await FileModel.find();
+      console.log(files);
+      res.send(files);
+    } catch (error) {
+      console.error('Error retrieving files:', error);
+      res.status(500).send('Error retrieving files');
+    }
+  });
+  
 app.use(express.static('Frontend'));
 
 // Start the server
