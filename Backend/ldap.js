@@ -5,13 +5,19 @@ const path = require('path');
 const FileModel = require('./mongo');
 const fs = require('fs');
 const templatePath = path.join(__dirname, '../templates');
+const app = express();
+const fileUpload = require('express-fileupload');
 
+//mongoDB connection
+//mongoose.connect('mongodb+srv://shreyasubramanya:Ar56YfIApVmWwLYW@cluster0.u2erbxi.mongodb.net/?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
+// .then(() => console.log('MongoDB connected...'))
+// .catch(err => console.error('MongoDB connection error:', err));
+const mongoose = require('mongoose');
+const connectionStr = 'mongodb+srv://kasiparimal:hKzLOFvPxuaGDiYg@cluster0.goqfart.mongodb.net/?retryWrites=true&w=majority';  
+
+//declare user as global variable for auditing function
 user = 'user';
 passwd = 'password'
-
-const app = express();
-
-const fileUpload = require('express-fileupload');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -37,13 +43,6 @@ app.get('/home', (req, res) => {
     res.render('home');
   });
 
-//mongoDB connection
-//mongoose.connect('mongodb+srv://shreyasubramanya:Ar56YfIApVmWwLYW@cluster0.u2erbxi.mongodb.net/?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
-  // .then(() => console.log('MongoDB connected...'))
-  // .catch(err => console.error('MongoDB connection error:', err));
-const mongoose = require('mongoose');
-const connectionStr = 'mongodb+srv://kasiparimal:hKzLOFvPxuaGDiYg@cluster0.goqfart.mongodb.net/?retryWrites=true&w=majority';
-
 
 //LDAP client configuration
 const client = ldap.createClient({
@@ -57,6 +56,7 @@ const groupPermissions = {
     'full access': ['upload', 'download', 'delete', 'view']
 };
 
+//audit functionality
 function logAudit(action, username, fileName) {
   const timestamp = new Date().toISOString();
   const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
@@ -68,76 +68,134 @@ function logAudit(action, username, fileName) {
   });
 }
 
+//function to authenticate user and retrieve group CN
+// function authenticateUser(username, password, callback) {
+//   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
+
+//   client.bind(userDN, password, (err) => {
+//       if (err) {
+//           console.error('LDAP authentication failed:', err);
+//           callback(false, null);
+//       } else {
+//           console.log('LDAP authentication successful');
+
+//           // Adjust the search base to the groups and the filter to find groups containing the user
+//           const searchBase = 'ou=Groups,dc=example,dc=com';
+//           const searchFilter = `(memberUid=${username})`;
+
+//           client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
+//               if (err) {
+//                   console.error('LDAP search error:', err);
+//                   client.unbind();
+//                   callback(false, null);
+//                   return;
+//               }
+
+//               let groupCN = 'null';
+//               res.on('searchEntry', (entry) => {
+//                   if (entry.object && entry.object.cn) {
+//                       groupCN = entry.object.cn; // Extract the group CN
+//                   }
+//               });
+
+//               res.on('end', (result) => {
+//                   console.log(`User ${username} belongs to group: ${groupCN}`);
+//                   client.unbind();
+//                   callback(true, groupCN); // Return the group CN
+//               });
+//           });
+//       }
+//   });
+// }
+
 function authenticateUser(username, password, callback) {
-  const userDN = `uid=${username},ou=people,dc=example,dc=com`;
-  user = `uid=${username},ou=people,dc=example,dc=com`;
-  passwd = password;
+  const userDN = `uid=${username},ou=People,dc=example,dc=com`;
 
   client.bind(userDN, password, (err) => {
       if (err) {
           console.error('LDAP authentication failed:', err);
-          callback(false, null);
+          callback(false, 'Download Only');
       } else {
-          console.log('LDAP authentication successful');
+          console.log('LDAP authentication successful for user:', username);
 
-          // Define search base for the user and a simple filter
-          const searchBase = userDN;
-          const searchFilter = `(uid=${username})`;
+          // Define search base for groups and filter for checking group membership
+          const searchBase = 'ou=Groups,dc=example,dc=com';
+          const searchFilter = `(&(objectClass=posixGroup)(cn=full access)(memberUid=${username}))`;
 
-          client.search(searchBase, { filter: searchFilter, scope: 'base' }, (err, res) => {
+          console.log(`Searching in: ${searchBase} with filter: ${searchFilter}`);
+
+          client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
               if (err) {
                   console.error('LDAP search error:', err);
                   client.unbind();
-                  callback(false, null);
+                  callback(false, 'Download Only');
                   return;
               }
 
-              let gidNumber = null;
+              let isFullAccess = false;
+
               res.on('searchEntry', (entry) => {
-                console.log('LDAP entry:', entry.object); // Additional logging
-                  if (entry.object && entry.object.gidNumber) {
-                      gidNumber = entry.object.gidNumber;
+                  console.log('Found LDAP entry:', entry.object);
+                  if (entry.object && entry.object.cn === 'full access') {
+                      console.log('Full access group found for user:', username);
+                      isFullAccess = true;
                   }
               });
 
               res.on('end', (result) => {
-                  console.log(`User ${username} has gidNumber: ${gidNumber}`);
                   client.unbind();
-                  callback(true, gidNumber); // Return the gidNumber
+                  let accessLevel = isFullAccess ? 'Full Access' : 'Download Only';
+                  console.log(`User ${username} has access level: ${accessLevel}`);
+                  callback(true, accessLevel); // Return the access level
               });
           });
       }
   });
 }
 
-//login requests handler
+// Login request handler
+// app.post('/login', (req, res) => {
+//   const { username, password } = req.body;
+
+//   authenticateUser(username, password, (isAuthenticated, groupCN) => {
+//       if (isAuthenticated) {
+//           console.log(`User: ${username}, Group: ${groupCN}`);
+
+//           // Determine features based on groupCN
+//           let features;
+//           if (groupCN === 'upload only') {
+//               features = 'uploadOnly';
+//           } else if (groupCN === 'full access') {
+//               features = 'fullAccess';
+//           } else {
+//               features = 'limitedAccess'; // Default or other specific roles
+//           }
+
+//           // Send response with appropriate features
+//           res.status(200).json({ message: 'User login successful', features: features });
+//       } else {
+//           res.status(401).send('User login failed');
+//       }
+//   });
+// });
+
+// Login request handler
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
-  authenticateUser(username, password, (isAuthenticated, gidNumber) => {
+  authenticateUser(username, password, (isAuthenticated, accessLevel) => {
       if (isAuthenticated) {
-          console.log(`User: ${username}, gidNumber: ${gidNumber}`);
+          console.log(`User: ${username}, Access Level: ${accessLevel}`);
 
-          // Determine the features based on gidNumber
-          let features;
-          // Here, you need to map gidNumbers to specific features or roles
-          // For example, if gidNumber is for 'upload only' group
-          req.body.username = username;
-          if (gidNumber === 5002) {
-              features = 'uploadOnly';
-          } else {
-              features = 'fullAccess'; // Default or other specific roles
-          }
-
-          // Send response with appropriate features
-          res.status(200).json({ message: 'User login successful', features: features });
+          // Send response with appropriate features based on access level
+          res.status(200).json({ message: 'User login successful', features: accessLevel });
       } else {
           res.status(401).send('User login failed');
       }
   });
 });
 
-
+//upload file functionality
 app.post('/uploadFile', async (req, res) => {
     console.log(req.files);
 
@@ -165,6 +223,7 @@ app.post('/uploadFile', async (req, res) => {
     }
   });
   
+  //download file functionality
   app.get('/downloadFile/', async (req, res) => {
     const fileName = req.query.fileName;
   
@@ -184,20 +243,7 @@ app.post('/uploadFile', async (req, res) => {
     }
   });
 
-  
-  // app.get('/files', async (req, res) => {
-  //   try {
-  //     const files = await FileModel.find();
-  //     console.log(files);
-  //     res.send(files);
-  //     // res.json(files);
-
-  //   } catch (error) {
-  //     console.error('Error retrieving files:', error);
-  //     res.status(500).send('Error retrieving files');
-  //   }
-  // });
-
+  //retrieves files from mongoDB
   app.get('/files', async (req, res) => {
     try {
       const files = await FileModel.find({}, 'fileName'); // Select only the fileName field
@@ -208,6 +254,7 @@ app.post('/uploadFile', async (req, res) => {
     }
   });
 
+  //delete file functionality
   app.post('/deleteFile', async (req, res) => {
     const fileName = req.body.fileName;
   
