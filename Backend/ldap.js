@@ -6,6 +6,8 @@ const FileModel = require('./mongo');
 const fs = require('fs');
 const templatePath = path.join(__dirname, '../templates');
 
+user = 'user';
+
 const app = express();
 
 const fileUpload = require('express-fileupload');
@@ -54,47 +56,6 @@ const groupPermissions = {
     'full access': ['upload', 'download', 'delete', 'view']
 };
 
-//authenticate user function that links to LDAP and validates user credentials
-// function authenticateUser(username, password, callback) {
-//     const userDN = `uid=${username},ou=people,dc=example,dc=com`;
-//     //client connection
-//     client.bind(userDN, password, (err) => {
-//         if (err) {
-//             console.error('LDAP authentication failed:', err);
-//             callback(false, []);
-//         } else {
-//             console.log('LDAP authentication successful');
-
-//             //define search base and filter for groups
-//             const searchBase = 'ou=Groups,dc=example,dc=com';
-//             const searchFilter = `(memberUid=${username})`;
-//             //query sub attriubutes of user subtree
-//             client.search(searchBase, { filter: searchFilter, scope: 'sub' }, (err, res) => {
-//                 if (err) {
-//                     console.error('LDAP search error:', err);
-//                     client.unbind();
-//                     callback(false, []);
-//                     return;
-//                 }
-//                 //add group value into an array
-//                 let groupCNs = [];
-//                 res.on('searchEntry', (entry) => {
-//                     if (entry.object && entry.object.cn) {
-//                         groupCNs.push(entry.object.cn);
-//                     }
-//                 });
-//                 //print results
-//                 res.on('end', (result) => {
-//                     console.log(`User ${username} is part of groups: ${groupCNs.join(', ')}`);
-//                     client.unbind();
-//                     callback(true, groupCNs); // Return an array of group CNs
-//                 });
-//             });
-//         }
-//     });
-// }
-
-
 function logAudit(action, username, fileName) {
   const timestamp = new Date().toISOString();
   const logMessage = `${timestamp} - User ${username} ${action} ${fileName}\n`;
@@ -108,6 +69,7 @@ function logAudit(action, username, fileName) {
 
 function authenticateUser(username, password, callback) {
   const userDN = `uid=${username},ou=people,dc=example,dc=com`;
+  user = `uid=${username},ou=people,dc=example,dc=com`;
 
   client.bind(userDN, password, (err) => {
       if (err) {
@@ -145,31 +107,6 @@ function authenticateUser(username, password, callback) {
   });
 }
 
-// app.post('/login', (req, res) => {
-//     const { username, password } = req.body;
-
-//     authenticateUser(username, password, (isAuthenticated, groupCNs) => {
-//         if (isAuthenticated) {
-//             console.log(`User: ${username}, Groups: ${groupCNs.join(', ')}`);
-
-//             // Determine the features based on group membership
-//             let features;
-//             if (groupCNs.includes('upload only')) {
-//                 // Logic for users in the 'upload only' group
-//                 features = 'uploadOnly';
-//             } else {
-//                 // Logic for other users or additional groups
-//                 features = 'fullAccess';
-//             }
-
-//             // Send response with appropriate features
-//             res.status(200).json({ message: 'User login successful', features: features });
-//         } else {
-//             res.status(401).send('User login failed');
-//         }
-//     });
-// });
-
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
@@ -200,6 +137,8 @@ app.post('/login', (req, res) => {
 app.post('/uploadFile', async (req, res) => {
     console.log(req.files);
 
+    const username = req.body.username;
+
     try {
       if (!req.files || Object.keys(req.files).length === 0) {
         return res.status(400).send('No file uploaded');
@@ -212,7 +151,7 @@ app.post('/uploadFile', async (req, res) => {
   
       await file.mv(filePath);
       await FileModel.create({ fileName, filePath, msg });
-      logAudit('uploaded', req.body.username, fileName);
+      logAudit('uploaded', user, fileName);
 
       res.send('File uploaded successfully');
       
@@ -227,13 +166,14 @@ app.post('/uploadFile', async (req, res) => {
   
     try {
       const file = await FileModel.findOne({ fileName: fileName });
-  
+    
       if (!file) {
         return res.status(404).send('File not found');
       }
   
       const filePath = file.filePath;
       res.download(filePath, fileName);
+      logAudit('downloaded', user, fileName);
     } catch (error) {
       console.error('Error downloading file:', error);
       res.status(500).send('Error downloading file');
@@ -260,7 +200,7 @@ app.post('/uploadFile', async (req, res) => {
   
       if (result.deletedCount === 1) {
         res.send('File deleted successfully');
-        logAudit('deleted', req.body.username, fileName);
+        logAudit('deleted', user, fileName);
 
       } else {
         res.status(404).send('File not found');
